@@ -1,7 +1,5 @@
 #include <SPI.h>
 #include <DW1000.h>
-#include <WiFi.h>
-#include <ArduinoJson.h>
 
 const uint8_t PIN_RST = 27;
 const uint8_t PIN_IRQ = 34;
@@ -10,39 +8,14 @@ const uint8_t PIN_SS = 4;
 const uint16_t NETWORK_ID = 10;
 const uint8_t DEVICE_ADDRESS = 8;
 
-const char* server = "192.168.87.69";  // Replace with your server IP
-const int port = 5005;
-
-const char* ssid = "Bredesande4";
-const char* password = "sommerhus2020";
-WiFiClient client;
 
 volatile boolean received = false;
 volatile boolean error = false;
-String receivedString;
-String message;
 
-struct TDOAData {
-  uint8_t tagID;
-  DW1000Time arrivalTime;
-  float rssi;
-};
+String message;
 
 void setup() {
   Serial.begin(9600);
-
-  WiFi.mode(WIFI_STA);
-  WiFi.setSleep(false);
-  WiFi.begin(ssid, password);
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
-  }
-  Serial.println("Connected");
-  Serial.print("IP Address:");
-  Serial.println(WiFi.localIP());
-
-  // connectToServer();
 
   DW1000.begin(PIN_IRQ, PIN_RST);
   DW1000.select(PIN_SS);
@@ -63,11 +36,9 @@ void setup() {
   receiver();
 }
 
-
 void handleReceive() {
   received = true;
 }
-
 
 void handleError() {
   error = true;
@@ -92,13 +63,10 @@ DW1000Time synchronizedTime;
 void loop() {
 
   if (received) {
-    // TDOAData data;
-    // receivedString = "";
     Serial.println("######  START  #########");
 
     DW1000Time receiveTimeValue;
     DW1000.getReceiveTimestamp(receiveTimeValue);
-    // DW1000.getTransmitTimestamp(receiveTimeValue);
     DW1000.getData(message);
 
     DW1000Time packNum(atoll(message.c_str()));
@@ -139,57 +107,7 @@ void loop() {
 
     Serial.print("Time diff between runs: ");
     Serial.println(timeDiffBetweenRuns);
-
-
-
-
-
-    // DW1000.getData(message);
-    // Serial.print("Data is ... ");
-    // Serial.println(message);
-    // // Serial.println("Processing received string: " + receivedString);
-
-    // int tagID = extractValueFromJson(message, "tagID");
-    // uint64_t packNum = extractValueFromJson(message, "packNum");
-    // int64_t timeValue = static_cast<int64_t>(packNum);
-    // DW1000Time newTime(timeValue);
-    // DW1000.correctTimestamp(newTime);
-
-
-    // // Debug output for extracted values
-    // DW1000Time currentTime;
-    // // Hent systemets tidsstempel og gem det i 'currentTime'
-    // DW1000.getSystemTimestamp(currentTime);  // Få det nuværende systemtidsstempel
-    // Serial.println(currentTime.getAsMicroSeconds());
-
-    // Serial.print("Extracted tagID: ");
-    // Serial.println(tagID);
-    // Serial.print("Extracted packNum: ");
-    // Serial.println(packNum);
     received = false;
   }
 }
 
-
-// int extractValueFromJson(String jsonString, const char* key) {
-//   StaticJsonDocument<200> doc;
-//   DeserializationError error = deserializeJson(doc, jsonString);
-
-//   if (error) {
-//     Serial.print(F("deserializeJson() failed: "));
-//     Serial.println(error.f_str());
-//     return -1;  // Returner en fejl værdi
-//   }
-
-//   return doc[key].as<int>();  // Udtræk værdien som en integer
-// }
-
-uint64_t extractValueFromJson(String message, String key) {
-  DynamicJsonDocument doc(1024);
-  deserializeJson(doc, message);
-  // Check if the key exists and return the correct type
-  if (doc.containsKey(key)) {
-    return doc[key].as<uint64_t>();
-  }
-  return 0;  // Default value if key not found
-}
